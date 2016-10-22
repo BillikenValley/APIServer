@@ -1,6 +1,10 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/BillikenValley/APIServer/model"
+)
 
 type Route struct {
 	Name        string
@@ -13,9 +17,40 @@ type Routes []Route
 
 var routes = Routes{
 	Route{
-		"Index",
+		"ShelterIndex",
 		"GET",
 		"/api/v1/shelter",
-		Index,
+		model.ShelterIndex,
+	},
+	Route{
+		"ShelterShow",
+		"GET",
+		"/api/v1/shelter/{ShelterID}",
+		model.ShelterShow,
+	},
+	Route{
+		"ShelterUpload",
+		"POST",
+		"/api/v1/shelter",
+		model.ShelterUpload,
+	},
+
+	Route{
+		"UserIndex",
+		"GET",
+		"/api/v1/user",
+		model.UserIndex,
+	},
+	Route{
+		"UserShow",
+		"GET",
+		"/api/v1/user/{UserID}",
+		model.ShelterShow,
+	},
+	Route{
+		"UserUpload",
+		"POST",
+		"/api/v1/user",
+		model.ShelterUpload,
 	},
 }

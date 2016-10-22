@@ -1,9 +1,16 @@
 package model
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 )
 
@@ -24,7 +31,7 @@ const (
 	InSchool        ShelterRequirementName = "in_school"
 	IsSober         ShelterRequirementName = "is_sober"
 
-	MaleAge            ShelterRequirementName = "male_age"
+	MaxMaleAge         ShelterRequirementName = "max_male_age"
 	FemaleAge          ShelterRequirementName = "female_age"
 	Children           ShelterRequirementName = "num_children"
 	TransFriendly      ShelterRequirementName = "trans_friendly"
@@ -46,15 +53,6 @@ const (
 
 type ShelterStatusID int
 
-type ShelterStatus struct {
-	gorm.Model
-
-	ShelterStatusID int
-	Beds            []BedStatus
-	Occupants       []User
-	LastUpdated     time.Time
-}
-
 type ShelterCredentials struct {
 	gorm.Model
 
@@ -62,11 +60,11 @@ type ShelterCredentials struct {
 	Password string
 }
 
-type OpenTime struct {
+type ShelterSchedule struct {
 	gorm.Model
 
-	From time.Time
-	To   time.Time
+	OpenTime    time.Time `json:"open_time"`
+	ClosingTime time.Time `json:"closing_time"`
 }
 
 type DayOfTheWeek int
@@ -81,11 +79,6 @@ const (
 	Sat
 )
 
-type ShelterSchedule struct {
-	gorm.Model
-	OpenTimes [7][]OpenTime
-}
-
 type RequirementImportance int
 
 const (
@@ -94,21 +87,31 @@ const (
 	Necessary
 )
 
-// RangeRequirement defines reqirment that x be in range [a, b)
-type RangeRequirement struct {
+type Requirement struct {
 	gorm.Model
 
-	Name       ShelterRequirementName
-	Importance RequirementImportance
-	Expected   [][2]int
+	Name
 }
+
+// RangeRequirement defines reqirment that x be in range [a, b)
+type ShelterConstraints struct {
+	gorm.Model
+
+	AcceptsMen
+	AcceptsSingleMen
+	MaxMaleAge
+	MinMaleAge
+	AcceptsWomen
+}
+
+type ShelterID int
 
 type Shelter struct {
 	gorm.Model
 
-	ShelterID       int // Database ID
-	Name            string
-	Requirements    []RangeRequirement
+	ShelterID       ShelterID `json:"uuid"`
+	Name            string    `json:"name"`
+	Requirements    map[string]Requirement
 	CurrentStatus   ShelterStatus
 	Credentials     []ShelterCredentials
 	Archive         []ShelterStatus
@@ -116,7 +119,44 @@ type Shelter struct {
 	ShelterSchedule ShelterSchedule
 }
 
-var shelters []Shelter
+var shelters map[ShelterID]Shelter
+
 func ShelterIndex(w http.ResponseWriter, r *http.Request) {
-	shelterJSON, err :=
+	json.NewEncoder(w).Encode(shelters)
+}
+
+func ShelterShow(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	shelterIDStr := vars["ShelterID"]
+	val, _ := strconv.Atoi(shelterIDStr)
+	var shelterID ShelterID = ShelterID(val)
+	if shelter, ok := shelters[shelterID]; ok {
+		json.NewEncoder(w).Encode(shelter)
+	} else {
+		json.NewEncoder(w).Encode(NewError(BadId, 404, fmt.Errorf("Bad ID Field")))
+	}
+	json.NewEncoder(w)
+}
+
+func ShelterUpload(w http.ResponseWriter, r *http.Request) {
+	var shelter Shelter
+	body, err := ioutil.ReadAll(io.LimitReader(r.Body, MAX_UPLOAD_SIZE))
+	if err != nil {
+		json.NewEncoder(w).Encode(NewError(BadRequestBody, 400, fmt.Errorf("BadRequestBody")))
+	}
+	if err := r.Body.Close(); err != nil {
+		json.NewEncoder(w).Encode(NewError(ServerErr, 500, err))
+	}
+	if err := json.Unmarshal(body, &shelter); err != nil {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(422) // unprocessable entity
+		if err := json.NewEncoder(w).Encode(err); err != nil {
+			panic(err)
+		}
+	}
+	shelter.ShelterID = ShelterID(rand.Int())
+	shelters[shelter.ShelterID] = shelter
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(shelter)
 }
