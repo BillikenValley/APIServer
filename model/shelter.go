@@ -14,44 +14,36 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type ShelterRequirementName string
-
 // Valid Reqirments
 const (
-	AgeReq          ShelterRequirementName = "age"
-	SexReq          ShelterRequirementName = "sex"
-	GenderReq       ShelterRequirementName = "gender"
-	IsPregnant      ShelterRequirementName = "is_pregnant"
-	WeeksPregnant   ShelterRequirementName = "weeks_pregnant"
-	SexOffender     ShelterRequirementName = "sex_offender"
-	ViolentCriminal ShelterRequirementName = "violent_criminal"
-	HasId           ShelterRequirementName = "has_id"
-	HasSSN          ShelterRequirementName = "has_ssn"
-	IsWorking       ShelterRequirementName = "is_working"
-	InSchool        ShelterRequirementName = "in_school"
-	IsSober         ShelterRequirementName = "is_sober"
+	AgeReq             = "age"
+	SexReq             = "sex"
+	GenderReq          = "gender"
+	IsPregnant         = "is_pregnant"
+	WeeksPregnant      = "weeks_pregnant"
+	IsSexOffender      = "is_sex_offender"
+	IsViolentCriminal  = "is_violent_criminal"
+	HasId              = "has_id"
+	HasSSN             = "has_ssn"
+	IsWorking          = "is_working"
+	InSchool           = "in_school"
+	IsSober            = "is_sober"
+	CurrentShelterUUID = "current_shelter_uuid"
 
-	MaxMaleAge         ShelterRequirementName = "max_male_age"
-	FemaleAge          ShelterRequirementName = "female_age"
-	Children           ShelterRequirementName = "num_children"
-	TransFriendly      ShelterRequirementName = "trans_friendly"
-	AcceptsSingleMen   ShelterRequirementName = "accepts_single_men"
-	AcceptsSingleWomen ShelterRequirementName = "accepts_single_women"
-	MustBeSober        ShelterRequirementName = "must_be_sober"
+	MaxMaleAge         = "max_male_age"
+	MinMaleAge         = "max_male_age"
+	MaxFemaleAge       = "max_female_age"
+	MinFemaleAge       = "min_female_age"
+	Children           = "num_children"
+	TransFriendly      = "trans_friendly"
+	AcceptsMen         = "accepts_men"
+	AcceptsSingleMen   = "accepts_single_men"
+	AcceptsWomen       = "accepts_women"
+	AcceptsSingleWomen = "accepts_single_women"
+	AcceptsChildren    = "accepts_children"
+	MaxChildren        = "max_children"
+	MustBeSober        = "must_be_sober"
 )
-
-type ShelterRequirement interface {
-}
-
-type BedStatus int
-
-const (
-	Unoccupied BedStatus = iota
-	Reserved
-	Occupied
-)
-
-type ShelterStatusID int
 
 type ShelterCredentials struct {
 	gorm.Model
@@ -67,18 +59,6 @@ type ShelterSchedule struct {
 	ClosingTime time.Time `json:"closing_time"`
 }
 
-type DayOfTheWeek int
-
-const (
-	Sun DayOfTheWeek = iota
-	Mon
-	Tues
-	Wed
-	Thurs
-	Fri
-	Sat
-)
-
 type RequirementImportance int
 
 const (
@@ -88,20 +68,8 @@ const (
 )
 
 type Requirement struct {
-	gorm.Model
-
-	Name
-}
-
-// RangeRequirement defines reqirment that x be in range [a, b)
-type ShelterConstraints struct {
-	gorm.Model
-
-	AcceptsMen
-	AcceptsSingleMen
-	MaxMaleAge
-	MinMaleAge
-	AcceptsWomen
+	Importance RequirementImportance
+	Value      int
 }
 
 type ShelterID int
@@ -109,14 +77,12 @@ type ShelterID int
 type Shelter struct {
 	gorm.Model
 
-	ShelterID       ShelterID `json:"uuid"`
-	Name            string    `json:"name"`
-	Requirements    map[string]Requirement
-	CurrentStatus   ShelterStatus
-	Credentials     []ShelterCredentials
-	Archive         []ShelterStatus
-	Location        Location
-	ShelterSchedule ShelterSchedule
+	ShelterID          ShelterID              `json:"uuid"`
+	Name               string                 `json:"name"`
+	Beds               []User                 `json:"beds"`
+	ShelterConstraints map[string]Requirement `json:"constraints"`
+	ShelterSchedule    ShelterSchedule        `json:"schedule"`
+	ShelterCredentials ShelterCredentials     `json:"-"`
 }
 
 var shelters map[ShelterID]Shelter
