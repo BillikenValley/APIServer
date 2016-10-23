@@ -9,17 +9,3 @@ type Location struct {
 	Lat     float64
 	Lng     float64
 }
-
-type Boolean int
-
-const (
-	Unknown Boolean = iota
-	No
-	Yes
-	Maybe
-)
-
-type Match struct {
-	Party    []User
-	Shelters []Shelter
-}

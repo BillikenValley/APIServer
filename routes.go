@@ -34,23 +34,4 @@ var routes = Routes{
 		"/api/v1/shelter",
 		model.ShelterUpload,
 	},
-
-	Route{
-		"UserIndex",
-		"GET",
-		"/api/v1/user",
-		model.UserIndex,
-	},
-	Route{
-		"UserShow",
-		"GET",
-		"/api/v1/user/{UserID}",
-		model.ShelterShow,
-	},
-	Route{
-		"UserUpload",
-		"POST",
-		"/api/v1/user",
-		model.ShelterUpload,
-	},
 }

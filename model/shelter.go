@@ -16,22 +16,22 @@ import (
 
 // Valid Reqirments
 const (
-	AgeReq             = "age"
-	SexReq             = "sex"
-	GenderReq          = "gender"
-	IsPregnant         = "is_pregnant"
-	WeeksPregnant      = "weeks_pregnant"
-	IsSexOffender      = "is_sex_offender"
-	IsViolentCriminal  = "is_violent_criminal"
-	HasId              = "has_id"
-	HasSSN             = "has_ssn"
-	IsWorking          = "is_working"
-	InSchool           = "in_school"
-	IsSober            = "is_sober"
-	CurrentShelterUUID = "current_shelter_uuid"
+	AgeReq                 = "age"
+	SexReq                 = "sex"
+	GenderReq              = "gender"
+	MustBePregnant         = "is_pregnant"
+	WeeksPregnant          = "weeks_pregnant"
+	AcceptsSexOffenders    = "is_sex_offender"
+	AcceptsViolentCriminal = "is_violent_criminal"
+	MustHaveID             = "has_id"
+	MustHaveSSN            = "has_ssn"
+	IsWorking              = "is_working"
+	InSchool               = "in_school"
+	AcceptsDrunks          = "is_sober"
+	CurrentShelterUUID     = "current_shelter_uuid"
 
 	MaxMaleAge         = "max_male_age"
-	MinMaleAge         = "max_male_age"
+	MinMaleAge         = "min_male_age"
 	MaxFemaleAge       = "max_female_age"
 	MinFemaleAge       = "min_female_age"
 	Children           = "num_children"
@@ -52,13 +52,6 @@ type ShelterCredentials struct {
 	Password string
 }
 
-type ShelterSchedule struct {
-	gorm.Model
-
-	OpenTime    time.Time `json:"open_time"`
-	ClosingTime time.Time `json:"closing_time"`
-}
-
 type RequirementImportance int
 
 const (
@@ -72,20 +65,53 @@ type Requirement struct {
 	Value      int
 }
 
-type ShelterID int
-
 type Shelter struct {
 	gorm.Model
 
-	ShelterID          ShelterID              `json:"uuid"`
-	Name               string                 `json:"name"`
-	Beds               []User                 `json:"beds"`
-	ShelterConstraints map[string]Requirement `json:"constraints"`
-	ShelterSchedule    ShelterSchedule        `json:"schedule"`
-	ShelterCredentials ShelterCredentials     `json:"-"`
+	ShelterID          int                `json:"uuid"`
+	Name               string             `json:"name"`
+	Beds               []int              `json:"beds"`
+	Location           Location           `json:"location"`
+	ShelterConstraints map[string]int     `json:"constraints"`
+	OpenTime           time.Time          `json:"open_time"`
+	ClosingTime        time.Time          `json:"close_time"`
+	ShelterCredentials ShelterCredentials `json:"-"`
 }
 
-var shelters map[ShelterID]Shelter
+func RandomShelter() Shelter {
+	beds := make([]int, 5)
+	shelter := Shelter{
+		ShelterID: rand.Int(),
+		Name:      randSeq(5),
+		Beds:      beds,
+		Location: Location{
+			Address: randSeq(5),
+			Lat:     rand.Float64(),
+			Lng:     rand.Float64(),
+		},
+		ShelterConstraints: map[string]int{
+			MaxMaleAge:   rand.Int() % 100,
+			MinMaleAge:   0,
+			MaxFemaleAge: rand.Int() % 100,
+			MinFemaleAge: 0,
+
+			AcceptsSingleMen:    rand.Int() % 2,
+			AcceptsSingleWomen:  rand.Int() % 2,
+			AcceptsChildren:     rand.Int() % 2,
+			AcceptsDrunks:       rand.Int() % 2,
+			MustHaveID:          rand.Int() % 2,
+			MustHaveSSN:         rand.Int() % 2,
+			AcceptsSexOffenders: rand.Int() % 2,
+		},
+		OpenTime:    time.Now(),
+		ClosingTime: time.Now().Add(2 * time.Hour),
+		ShelterCredentials: ShelterCredentials{
+			Username: "david",
+			Password: "password",
+		},
+	}
+	return shelter
+}
 
 func ShelterIndex(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(shelters)
@@ -93,9 +119,9 @@ func ShelterIndex(w http.ResponseWriter, r *http.Request) {
 
 func ShelterShow(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	shelterIDStr := vars["ShelterID"]
+	shelterIDStr := vars["int"]
 	val, _ := strconv.Atoi(shelterIDStr)
-	var shelterID ShelterID = ShelterID(val)
+	var shelterID int = int(val)
 	if shelter, ok := shelters[shelterID]; ok {
 		json.NewEncoder(w).Encode(shelter)
 	} else {
@@ -120,7 +146,7 @@ func ShelterUpload(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 	}
-	shelter.ShelterID = ShelterID(rand.Int())
+	shelter.ShelterID = int(rand.Int())
 	shelters[shelter.ShelterID] = shelter
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusCreated)
